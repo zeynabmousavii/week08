@@ -1,0 +1,64 @@
+# week08/.github/workflows/backend-cd.yml
+
+name: CD - Deploy to AKS (Latest Tag)
+
+# This workflow will be triggered manually from the GitHub Actions UI.
+# This gives you control over when to deploy.
+on:
+  workflow_dispatch:
+    inputs:
+      # We only need the AKS cluster name as the image tag is fixed at 'latest'
+      aks_cluster_name:
+        description: 'Name of the AKS Cluster to deploy to'
+        required: true
+        # IMPORTANT: Replace this with your actual AKS cluster name as a default
+        default: 'sit722week05ex1aks' # e.g., 'ecomm-aks-fast-cat'
+      # IMPORTANT: Replace this with your actual AKS cluster's resource group name
+      aks_resource_group:
+        description: 'Resource Group of the AKS Cluster'
+        required: true
+        default: 'week05_example1_rg' # e.g., 'tf-rg-w06-ex3-random-pet'
+      k8s_namespace:
+        description: 'Kubernetes Namespace for deployment'
+        required: false
+        default: 'ecomm-w08-aks' # Default namespace, change if you use a specific one
+
+jobs:
+  deploy_to_aks:
+    runs-on: ubuntu-latest # Use a GitHub-hosted runner
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4 # Get the Kubernetes manifests and other files
+
+      - name: Log in to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_AKS_CREDENTIALS }} # Uses the secret containing SP JSON
+          enable-AzPSSession: true # Required for some Azure CLI commands
+
+      - name: Set Kubernetes context (get AKS credentials)
+        uses: azure/aks-set-context@v3
+        with:
+          resource-group: ${{ github.event.inputs.aks_resource_group }} # Use input from manual trigger
+          cluster-name: ${{ github.event.inputs.aks_cluster_name }} # Use input from manual trigger
+
+      - name: Deploy to AKS
+        # Apply all Kubernetes manifests in your k8s directory.
+        # Ensure these YAMLs are configured with the correct ACR and ':latest' tag.
+        run: |
+          echo "Deploying applications with latest tag to AKS cluster: ${{ github.event.inputs.aks_cluster_name }}"
+          cd week08/k8s/
+          kubectl apply -f namespace.yaml
+          kubectl apply -f configmaps.yaml
+          kubectl apply -f secrets.yaml
+          kubectl apply -f rabbitmq.yaml
+          kubectl apply -f product-db.yaml
+          kubectl apply -f order-db.yaml
+          kubectl apply -f customer-db.yaml
+          kubectl apply -f product-service.yaml
+          kubectl apply -f order-service.yaml
+          kubectl apply -f customer-service.yaml
+
+      - name: Logout from Azure
+        run: az logout
