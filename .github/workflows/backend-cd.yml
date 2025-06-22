@@ -1,31 +1,34 @@
-# week08/.github/workflows/backend-cd.yml
+name: CD - Deploy Backend Services to AKS
 
-name: CD - Deploy to AKS (Latest Tag)
-
-# This workflow will be triggered manually from the GitHub Actions UI.
-# This gives you control over when to deploy.
 on:
   workflow_dispatch:
     inputs:
-      # We only need the AKS cluster name as the image tag is fixed at 'latest'
       aks_cluster_name:
         description: 'Name of the AKS Cluster to deploy to'
         required: true
-        # IMPORTANT: Replace this with your actual AKS cluster name as a default
-        default: 'sit722week05ex1aks' # e.g., 'ecomm-aks-fast-cat'
-      # IMPORTANT: Replace this with your actual AKS cluster's resource group name
+        default: 'sit722week05ex1aks' # IMPORTANT: Ensure this is your actual AKS cluster name
       aks_resource_group:
         description: 'Resource Group of the AKS Cluster'
         required: true
-        default: 'week05_example1_rg' # e.g., 'tf-rg-w06-ex3-random-pet'
+        default: 'week05_example1_rg' # IMPORTANT: Ensure this is your actual AKS cluster's resource group
       k8s_namespace:
         description: 'Kubernetes Namespace for deployment'
         required: false
-        default: 'ecomm-w08-aks' # Default namespace, change if you use a specific one
+        default: 'ecomm-w08-aks' # IMPORTANT: Ensure this is your desired namespace
+
+# The 'outputs' block at the top-level is removed here as it's not allowed for workflow_dispatch triggers.
+# The IPs will still be available in the job summary outputs.
 
 jobs:
-  deploy_to_aks:
-    runs-on: ubuntu-latest # Use a GitHub-hosted runner
+  deploy_backend:
+    runs-on: ubuntu-latest
+    environment: Production # Optional: Define environments for protection rules and tracking
+    
+    # Define job-level outputs. These WILL be visible in the GitHub Actions UI summary.
+    outputs:
+      PRODUCT_API_IP: ${{ steps.get_product_ip.outputs.external_ip }}
+      ORDER_API_IP: ${{ steps.get_order_ip.outputs.external_ip }}
+      CUSTOMER_API_IP: ${{ steps.get_customer_ip.outputs.external_ip }}
 
     steps:
       - name: Checkout repository
@@ -34,31 +37,82 @@ jobs:
       - name: Log in to Azure
         uses: azure/login@v1
         with:
-          creds: ${{ secrets.AZURE_AKS_CREDENTIALS }} # Uses the secret containing SP JSON
+          creds: ${{ secrets.AZURE_AKS_CREDENTIALS }} # Uses the secret containing Service Principal JSON
           enable-AzPSSession: true # Required for some Azure CLI commands
 
       - name: Set Kubernetes context (get AKS credentials)
         uses: azure/aks-set-context@v3
         with:
-          resource-group: ${{ github.event.inputs.aks_resource_group }} # Use input from manual trigger
-          cluster-name: ${{ github.event.inputs.aks_cluster_name }} # Use input from manual trigger
+          resource-group: ${{ github.event.inputs.aks_resource_group }}
+          cluster-name: ${{ github.event.inputs.aks_cluster_name }}
 
-      - name: Deploy to AKS
-        # Apply all Kubernetes manifests in your k8s directory.
-        # Ensure these YAMLs are configured with the correct ACR and ':latest' tag.
+      - name: Deploy Backend Infrastructure (Namespace, ConfigMaps, Secrets, RabbitMQ, Databases)
         run: |
-          echo "Deploying applications with latest tag to AKS cluster: ${{ github.event.inputs.aks_cluster_name }}"
+          echo "Deploying backend infrastructure..."
           cd week08/k8s/
-          kubectl apply -f namespace.yaml
-          kubectl apply -f configmaps.yaml
-          kubectl apply -f secrets.yaml
-          kubectl apply -f rabbitmq.yaml
-          kubectl apply -f product-db.yaml
-          kubectl apply -f order-db.yaml
-          kubectl apply -f customer-db.yaml
-          kubectl apply -f product-service.yaml
-          kubectl apply -f order-service.yaml
-          kubectl apply -f customer-service.yaml
+          # Using --ignore-not-found=true for apply on namespace to prevent error if it exists
+          kubectl apply -f namespace.yaml --namespace ${{ github.event.inputs.k8s_namespace }} || true 
+          kubectl apply -f configmaps.yaml --namespace ${{ github.event.inputs.k8s_namespace }}
+          kubectl apply -f secrets.yaml --namespace ${{ github.event.inputs.k8s_namespace }}
+          kubectl apply -f rabbitmq.yaml --namespace ${{ github.event.inputs.k8s_namespace }}
+          kubectl apply -f product-db.yaml --namespace ${{ github.event.inputs.k8s_namespace }}
+          kubectl apply -f order-db.yaml --namespace ${{ github.event.inputs.k8s_namespace }}
+          kubectl apply -f customer-db.yaml --namespace ${{ github.event.inputs.k8s_namespace }}
+
+      - name: Deploy Backend Microservices (Product, Order, Customer)
+        run: |
+          echo "Deploying backend microservices..."
+          cd week08/k8s/
+          kubectl apply -f product-service.yaml --namespace ${{ github.event.inputs.k8s_namespace }}
+          kubectl apply -f order-service.yaml --namespace ${{ github.event.inputs.k8s_namespace }}
+          kubectl apply -f customer-service.yaml --namespace ${{ github.event.inputs.k8s_namespace }}
+      
+      - name: Wait for Backend LoadBalancer IPs
+        run: |
+          echo "Waiting for Product, Order, Customer LoadBalancer IPs to be assigned (up to 5 minutes)..."
+          PRODUCT_IP=""
+          ORDER_IP=""
+          CUSTOMER_IP=""
+          NAMESPACE="${{ github.event.inputs.k8s_namespace }}"
+          
+          for i in $(seq 1 60); do
+            echo "Attempt $i/60 to get IPs..."
+            PRODUCT_IP=$(kubectl get service product-service --namespace $NAMESPACE -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)
+            ORDER_IP=$(kubectl get service order-service --namespace $NAMESPACE -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)
+            CUSTOMER_IP=$(kubectl get service customer-service --namespace $NAMESPACE -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)
+
+            if [[ -n "$PRODUCT_IP" && -n "$ORDER_IP" && -n "$CUSTOMER_IP" ]]; then
+              echo "All backend LoadBalancer IPs assigned!"
+              echo "Product Service IP: $PRODUCT_IP"
+              echo "Order Service IP: $ORDER_IP"
+              echo "Customer Service IP: $CUSTOMER_IP"
+              break
+            fi
+            sleep 5 # Wait 5 seconds before next attempt
+          done
+          
+          if [[ -z "$PRODUCT_IP" || -z "$ORDER_IP" || -z "$CUSTOMER_IP" ]]; then
+            echo "Error: One or more LoadBalancer IPs not assigned after timeout."
+            exit 1 # Fail the job if IPs are not obtained
+          fi
+          
+          # These are environment variables for subsequent steps in the *same job*
+          # And used to set the job outputs
+          echo "PRODUCT_IP=$PRODUCT_IP" >> $GITHUB_ENV
+          echo "ORDER_IP=$ORDER_IP" >> $GITHUB_ENV
+          echo "CUSTOMER_IP=$CUSTOMER_IP" >> $GITHUB_ENV
+
+      - name: Capture Product Service IP for Workflow Output
+        id: get_product_ip
+        run: echo "external_ip=${{ env.PRODUCT_IP }}" >> $GITHUB_OUTPUT
+      
+      - name: Capture Order Service IP for Workflow Output
+        id: get_order_ip
+        run: echo "external_ip=${{ env.ORDER_IP }}" >> $GITHUB_OUTPUT
+
+      - name: Capture Customer Service IP for Workflow Output
+        id: get_customer_ip
+        run: echo "external_ip=${{ env.CUSTOMER_IP }}" >> $GITHUB_OUTPUT
 
       - name: Logout from Azure
         run: az logout
