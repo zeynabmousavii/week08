@@ -41,10 +41,8 @@ jobs:
           enable-AzPSSession: true # Required for some Azure CLI commands
 
       - name: Set Kubernetes context (get AKS credentials)
-        uses: azure/aks-set-context@v3
-        with:
-          resource-group: ${{ github.event.inputs.aks_resource_group }}
-          cluster-name: ${{ github.event.inputs.aks_cluster_name }}
+        run: |
+          az aks get-credentials --resource-group ${{ github.event.inputs.aks_resource_group }} --name ${{ github.event.inputs.aks_cluster_name }} --overwrite-existing
 
       - name: Deploy Backend Infrastructure (Namespace, ConfigMaps, Secrets, RabbitMQ, Databases)
         run: |
