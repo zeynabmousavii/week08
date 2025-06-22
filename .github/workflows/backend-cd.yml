@@ -47,7 +47,7 @@ jobs:
       - name: Deploy Backend Infrastructure (Namespace, ConfigMaps, Secrets, RabbitMQ, Databases)
         run: |
           echo "Deploying backend infrastructure..."
-          cd week08/k8s/
+          cd k8s/
           # Using --ignore-not-found=true for apply on namespace to prevent error if it exists
           kubectl apply -f namespace.yaml --namespace ${{ github.event.inputs.k8s_namespace }} || true 
           kubectl apply -f configmaps.yaml --namespace ${{ github.event.inputs.k8s_namespace }}
