@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
       - name: order-service-container
-        image: sit722week05ex1.azurecr.io/order_service:latest
+        image: sit722week05ex1.azurecr.io/order-service:latest
         imagePullPolicy: Always # Always pull the latest image from ACR
         ports:
         - containerPort: 8001 # FastAPI app typically runs on port 8001 for W03E3 Order Service

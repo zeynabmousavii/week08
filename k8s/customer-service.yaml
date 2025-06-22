@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
       - name: customer-service-container
-        image: sit722week05ex1.azurecr.io/customer_service:latest
+        image: sit722week05ex1.azurecr.io/customer-service:latest
         imagePullPolicy: Always # Always pull the latest image from ACR
         ports:
         - containerPort: 8002 # Assuming Customer Service listens on port 8002
