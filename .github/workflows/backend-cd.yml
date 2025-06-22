@@ -6,25 +6,21 @@ on:
       aks_cluster_name:
         description: 'Name of the AKS Cluster to deploy to'
         required: true
-        default: 'sit722week05ex1aks' # IMPORTANT: Ensure this is your actual AKS cluster name
+        default: 'sit722week05ex1aks'
       aks_resource_group:
         description: 'Resource Group of the AKS Cluster'
         required: true
-        default: 'week05_example1_rg' # IMPORTANT: Ensure this is your actual AKS cluster's resource group
+        default: 'week05_example1_rg'
       k8s_namespace:
         description: 'Kubernetes Namespace for deployment'
         required: false
-        default: 'ecomm-w08-aks' # IMPORTANT: Ensure this is your desired namespace
-
-# The 'outputs' block at the top-level is removed here as it's not allowed for workflow_dispatch triggers.
-# The IPs will still be available in the job summary outputs.
+        default: 'ecomm-w08-aks'
 
 jobs:
   deploy_backend:
     runs-on: ubuntu-latest
-    environment: Production # Optional: Define environments for protection rules and tracking
+    environment: Production
     
-    # Define job-level outputs. These WILL be visible in the GitHub Actions UI summary.
     outputs:
       PRODUCT_API_IP: ${{ steps.get_product_ip.outputs.external_ip }}
       ORDER_API_IP: ${{ steps.get_order_ip.outputs.external_ip }}
@@ -32,13 +28,13 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4 # Get the Kubernetes manifests and other files
+        uses: actions/checkout@v4
 
       - name: Log in to Azure
         uses: azure/login@v1
         with:
-          creds: ${{ secrets.AZURE_AKS_CREDENTIALS }} # Uses the secret containing Service Principal JSON
-          enable-AzPSSession: true # Required for some Azure CLI commands
+          creds: ${{ secrets.AZURE_AKS_CREDENTIALS }}
+          enable-AzPSSession: true
 
       - name: Set Kubernetes context (get AKS credentials)
         run: |
@@ -60,7 +56,7 @@ jobs:
       - name: Deploy Backend Microservices (Product, Order, Customer)
         run: |
           echo "Deploying backend microservices..."
-          cd week08/k8s/
+          cd k8s/
           kubectl apply -f product-service.yaml --namespace ${{ github.event.inputs.k8s_namespace }}
           kubectl apply -f order-service.yaml --namespace ${{ github.event.inputs.k8s_namespace }}
           kubectl apply -f customer-service.yaml --namespace ${{ github.event.inputs.k8s_namespace }}
