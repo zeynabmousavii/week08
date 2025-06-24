@@ -19,7 +19,7 @@ spec:
       containers:
       - name: order-service-container
         image: order_service
-        imagePullPolicy: Never
+        imagePullPolicy: Always
         ports:
         - containerPort: 8001
         env:

@@ -19,7 +19,7 @@ spec:
       containers:
       - name: product-service-container
         image: sit722week07.azurecr.io/product_service:latest
-        imagePullPolicy: Never
+        imagePullPolicy: Always
         ports:
         - containerPort: 8000
         env:
