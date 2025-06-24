@@ -6,11 +6,11 @@ on:
       aks_cluster_name:
         description: 'Name of the AKS Cluster to deploy to'
         required: true
-        default: 'sit722week07'
+        default: '<aks_cluster_name>'
       aks_resource_group:
         description: 'Resource Group of the AKS Cluster'
         required: true
-        default: 'deakinuni'
+        default: '<resource_group_name>'
 
 jobs:
   deploy_backend:

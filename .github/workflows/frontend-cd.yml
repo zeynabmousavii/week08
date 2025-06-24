@@ -8,21 +8,21 @@ on:
   workflow_dispatch:
     inputs:
       product_api_ip:
-        description: 'External IP of Product Service (e.g., http://X.X.X.X:8000)'
+        description: 'External IP of Product Service'
         required: true
-        default: 'http://4.254.25.230:8000'
+        default: 'http://<ip_address>:8000'
       order_api_ip:
         description: 'External IP of Order Service (e.g., http://Y.Y.Y.Y:8001)'
         required: true
-        default: 'http://4.254.45.25:8001'
+        default: 'http://<ip_address>:8001'
       aks_cluster_name:
         description: 'Name of the AKS Cluster to deploy to'
         required: true
-        default: 'sit722week07'
+        default: '<aks_name>'
       aks_resource_group:
         description: 'Resource Group of the AKS Cluster'
         required: true
-        default: 'deakinuni'
+        default: '<<resource_group_name>'
 
   workflow_call:
     inputs:
@@ -38,10 +38,6 @@ on:
       aks_resource_group:
         required: true
         type: string
-
-env:
-  AZURE_CONTAINER_REGISTRY: sit722week07
-  FRONTEND_IMAGE_TAG: latest
 
 jobs:
   deploy_frontend:
@@ -90,7 +86,7 @@ jobs:
         run: |
           echo "Deploying frontend with latest tag to AKS cluster: ${{ inputs.aks_cluster_name }}"
           cd k8s/
-          # Ensure frontend-service.yaml is configured with your ACR and ':latest' tag
+          # Ensure frontend-service.yaml is configured with your ACR
           kubectl apply -f frontend.yaml
 
       - name: Logout from Azure (AKS deployment)

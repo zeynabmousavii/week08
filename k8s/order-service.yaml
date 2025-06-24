@@ -21,36 +21,35 @@ spec:
         image: sit722week07.azurecr.io/order_service:latest
         imagePullPolicy: Always
         ports:
-        - containerPort: 8001
+        - containerPort: 8000
         env:
-        # Database connection details
         - name: POSTGRES_HOST
           value: order-db-service-w08e1
         - name: POSTGRES_DB
           valueFrom:
             configMapKeyRef:
-              name: ecomm-config-w08e1 # ConfigMap name matches
+              name: ecomm-config-w08e1
               key: ORDERS_DB_NAME
         - name: POSTGRES_USER
           valueFrom:
             secretKeyRef:
-              name: ecomm-secrets-w08e1 # Secret name matches
+              name: ecomm-secrets-w08e1
               key: POSTGRES_USER
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: ecomm-secrets-w08e1 # Secret name matches
+              name: ecomm-secrets-w08e1
               key: POSTGRES_PASSWORD
         - name: PRODUCT_SERVICE_URL
           valueFrom:
             configMapKeyRef:
-              name: ecomm-config-w08e1 # ConfigMap name matches
-              key: PRODUCT_SERVICE_URL # This will be the internal ClusterIP for the Product Service
+              name: ecomm-config-w08e1
+              key: PRODUCT_SERVICE_URL
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: order-service-w08e1 # Service name matches
+  name: order-service-w08e1
   labels:
     app: order-service
 spec:
@@ -59,5 +58,5 @@ spec:
   ports:
     - protocol: TCP
       port: 8001
-      targetPort: 8001
+      targetPort: 8000
   type: LoadBalancer
