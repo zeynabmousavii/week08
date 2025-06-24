@@ -1,16 +1,5 @@
 # week08/k8s/product-db.yaml
 
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: product-db-pvc-w08e1
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 5Gi
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -48,13 +37,6 @@ spec:
             secretKeyRef:
               name: ecomm-secrets-w08e1 # Secret name matches
               key: POSTGRES_PASSWORD
-        volumeMounts:
-        - name: product-db-storage
-          mountPath: /var/lib/postgresql/data # Mount point for PostgreSQL data
-      volumes:
-      - name: product-db-storage
-        persistentVolumeClaim:
-          claimName: product-db-pvc-w08e1 # Link to the PVC defined above
 ---
 apiVersion: v1
 kind: Service
