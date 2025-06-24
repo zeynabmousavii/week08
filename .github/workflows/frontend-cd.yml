@@ -15,22 +15,14 @@ on:
         description: 'External IP of Order Service (e.g., http://Y.Y.Y.Y:8001)'
         required: true
         default: 'http://4.254.45.25:8001'
-      customer_api_ip:
-        description: 'External IP of Customer Service (e.g., http://Z.Z.Z.Z:8002)'
-        required: true
-        default: 'http://4.237.232.201:8002'
       aks_cluster_name:
         description: 'Name of the AKS Cluster to deploy to'
         required: true
-        default: 'sit722week05ex1aks'
+        default: 'sit722week07'
       aks_resource_group:
         description: 'Resource Group of the AKS Cluster'
         required: true
-        default: 'week05_example1_rg'
-      k8s_namespace:
-        description: 'Kubernetes Namespace for deployment'
-        required: false
-        default: 'ecomm-w08-aks'
+        default: 'deakinuni'
 
   workflow_call:
     inputs:
@@ -40,22 +32,15 @@ on:
       order_api_ip:
         required: true
         type: string
-      customer_api_ip:
-        required: true
-        type: string
       aks_cluster_name:
         required: true
         type: string
       aks_resource_group:
         required: true
         type: string
-      k8s_namespace:
-        required: false
-        type: string
-        default: 'ecomm-w08-aks'
 
 env:
-  AZURE_CONTAINER_REGISTRY: sit722week05ex1
+  AZURE_CONTAINER_REGISTRY: sit722week07
   FRONTEND_IMAGE_TAG: latest
 
 jobs:
@@ -75,17 +60,16 @@ jobs:
 
       # Login to Azure Container Registry (ACR)
       - name: Login to Azure Container Registry
-        run: az acr login --name ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io
+        run: az acr login --name ${{ secrets.AZURE_CONTAINER_REGISTRY }}
 
       - name: Inject Backend IPs into Frontend main.js
         run: |
           echo "Injecting IPs into frontend/static/js/main.js"
-          # Ensure frontend/static/js/main.js is directly in the path for sed
+          # Ensure frontend/main.js is directly in the path for sed
           sed -i "s|_PRODUCT_API_URL_|${{ inputs.product_api_ip }}|g" frontend/main.js
           sed -i "s|_ORDER_API_URL_|${{ inputs.order_api_ip }}|g" frontend/main.js
-          sed -i "s|_CUSTOMER_API_URL_|${{ inputs.customer_api_ip }}|g" frontend/main.js
           
-          # Optional: Display the modified file content for debugging
+          # Display the modified file content for debugging
           echo "--- Modified main.js content ---"
           cat frontend/main.js
           echo "---------------------------------"
@@ -93,8 +77,8 @@ jobs:
       # Build and Push Docker image for Frontend
       - name: Build and Push Frontend Image
         run: |
-          docker build -t ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/frontend:latest ./frontend/
-          docker push ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/frontend:latest
+          docker build -t ${{ secrets.AZURE_CONTAINER_REGISTRY }}/frontend:latest ./frontend/
+          docker push ${{ secrets.AZURE_CONTAINER_REGISTRY }}/frontend:latest
 
       - name: Set Kubernetes context (get AKS credentials)
         uses: azure/aks-set-context@v3
@@ -107,7 +91,7 @@ jobs:
           echo "Deploying frontend with latest tag to AKS cluster: ${{ inputs.aks_cluster_name }}"
           cd k8s/
           # Ensure frontend-service.yaml is configured with your ACR and ':latest' tag
-          kubectl apply -f frontend.yaml --namespace ${{ inputs.k8s_namespace }}
+          kubectl apply -f frontend.yaml
 
       - name: Logout from Azure (AKS deployment)
         run: az logout
