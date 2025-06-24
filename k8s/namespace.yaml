@@ -1,8 +1,0 @@
-# week08/k8s/namespace.yaml
-
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: ecomm-w08-aks # Dedicated namespace for Week 05 AKS deployment
-  labels:
-    app: ecomm-w08-aks

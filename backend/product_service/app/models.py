@@ -7,7 +7,8 @@ from .db import Base
 
 
 class Product(Base):
-    __tablename__ = "products_week05_example_01"
+    # Name of the database table
+    __tablename__ = "products_week08_example_01"
     product_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     name = Column(String(255), nullable=False, index=True)
     description = Column(Text, nullable=True)

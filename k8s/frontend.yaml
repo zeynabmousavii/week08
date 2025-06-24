@@ -3,8 +3,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: frontend-w08-aks
-  namespace: ecomm-w08-aks
+  name: frontend
   labels:
     app: frontend
 spec:
@@ -19,23 +18,15 @@ spec:
     spec:
       containers:
       - name: frontend-container
-        image: sit722week05ex1.azurecr.io/frontend:latest
-        imagePullPolicy: Always # Always pull the latest image from ACR
+        image: sit722week07.azurecr.io/frontend:latest
+        imagePullPolicy: Never
         ports:
-        - containerPort: 80 # Nginx runs on port 80 inside the container
-        env:
-        - name: PRODUCT_API_BASE_URL
-          value: http://product-service-w08-aks:8000 # Internal ClusterIP
-        - name: ORDER_API_BASE_URL
-          value: http://order-service-w08-aks:8001   # Internal ClusterIP
-        - name: CUSTOMER_API_BASE_URL
-          value: http://customer-service-w08-aks:8002 # Internal ClusterIP
+        - containerPort: 80
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: frontend-w08-aks
-  namespace: ecomm-w08-aks
+  name: frontend-w08e1 # Service name matches
   labels:
     app: frontend
 spec:
@@ -43,6 +34,6 @@ spec:
     app: frontend
   ports:
     - protocol: TCP
-      port: 80
-      targetPort: 80
-  type: LoadBalancer
+      port: 80 # The port the service listens on inside the cluster
+      targetPort: 80 # The port on the Pod (containerPort where Nginx runs)
+  type: LoadBalancer # Exposes the service on a port on each Node's IP

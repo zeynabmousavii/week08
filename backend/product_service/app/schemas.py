@@ -30,10 +30,10 @@ class ProductUpdate(ProductBase):
 
 class ProductResponse(ProductBase):
     product_id: int
-    created_at: datetime  # Datetime type for Pydantic to serialize
-    updated_at: Optional[datetime] = None  # Datetime type for Pydantic to serialize
+    created_at: datetime
+    updated_at: Optional[datetime] = None
 
-    model_config = ConfigDict(from_attributes=True)  # Enable ORM mode for Pydantic V2
+    model_config = ConfigDict(from_attributes=True)
 
 
 class StockDeductRequest(BaseModel):
