@@ -15,13 +15,14 @@ The primary goals of this example are to illustrate:
 
 Before you begin, ensure you have the following:
 
-2.  **Azure Kubernetes Service (AKS):** An existing AKS cluster. You will need its **name** and **resource group name**.
-3.  **Azure Container Registry (ACR):** An existing ACR where your Docker images are pushed by the CI pipeline. You will need its **name**.
-4.  **GitHub Repository Secrets:**
+1. Create all required resources (Resource Group, Storage Account, ACR, AKS)
+2. **Azure Service Principle:** Create new Service Principle.
+3. Add new role for service principle for resource group. More detailes about this step will be provided in seminar. Make sure you join seminar for this.
+4. **GitHub Repository Secrets:**
     - In your GitHub repository, go to **Settings** > **Secrets and variables** > **Actions**.
     - Click **New repository secret** for each:
       - `AZURE_AKS_CREDENTIALS`: Paste the **entire JSON output** from the AKS Deployment Service Principal.
-      - `AZURE_CREDENTIALS`: If you used a separate SP for ACR push in CI, paste its **entire JSON output** here. (Often, `AZURE_AKS_CREDENTIALS` can also be used for ACR login if it has sufficient permissions, simplifying secrets).
+      - `AZURE_CREDENTIALS`: If you used a separate SP for ACR push in CI, paste its **entire JSON output** here.
 
 ## 📝 Configuration Files
 
